@@ -45,7 +45,7 @@ npm run dev  # Starts nodemon for auto-restart
 ```bash
 cd frontend
 npm install
-npm run dev     # Starts Vite dev server on port 5173
+npm run dev     # Starts Vite dev server on port 5173 with --host flag
 npm run build   # TypeScript compilation + Vite build
 npm run preview # Preview production build
 ```
@@ -104,10 +104,11 @@ npm run preview # Preview production build
 
 ### Environment Variables
 The application requires specific environment variables:
-- `NGROK_AUTHTOKEN`: Required for HTTPS tunneling
+- `NGROK_AUTHTOKEN`: Required for HTTPS tunneling (mandatory for Docker)
 - `PUBLIC_URL`: Public URL for the application
 - Backend `.env`: Database and auth configuration
 - Frontend `.env`: API endpoints and public URL
+- Root `.env`: Additional configuration variables
 
 ### HTTPS/SSL Setup
 - The application auto-detects SSL certificates in `backend/certificate/`
@@ -155,7 +156,17 @@ Translation files located in `frontend/src/locales/`
 
 - Frontend uses vanilla TypeScript with custom routing (no React/Vue)
 - Backend follows MVC pattern with controller/route separation  
-- WebSocket and HTTP servers run on separate ports (3000, 5173)
+- WebSocket and HTTP servers run on separate ports (backend: 3000, frontend: 5173)
 - Auto-detection of LAN IP for CORS configuration
+- Docker setup includes ngrok for HTTPS tunneling, requires valid authtoken
 - No test framework currently configured
 - No linting tools (ESLint, etc.) currently configured
+
+## Docker Architecture
+
+The containerized setup includes:
+- Single container running both frontend and backend services
+- ngrok tunnel for HTTPS access to backend (port 3000)
+- Volume mounting for SQLite database persistence
+- Automatic service startup via `entrypoint.sh`
+- Both services run in development mode with auto-reload

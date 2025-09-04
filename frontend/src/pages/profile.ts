@@ -41,7 +41,7 @@ export async function renderProfile(): Promise<HTMLElement> {
         <label>${i18next.t('displayName')}</label>
         <input id="nameInput"  type="text"  value="${user.name}">
         <label>${i18next.t('email')}</label>
-        <input id="emailInput" type="email" value="${user.email}">
+        <input id="emailInput" type="email" value="${user.email}" readonly>
         <label>${i18next.t('newPassword')}</label>
         <input id="passwordInput"        type="password" placeholder="${i18next.t('newPassword')}">
         <label>${i18next.t('confirmPassword')}</label>
@@ -366,7 +366,6 @@ async function showFriendProfile(friend: Friend) {
       saveBtn.textContent = '💾 Saving...';
       
       const name = (container.querySelector('#nameInput') as HTMLInputElement).value.trim();
-      const email = (container.querySelector('#emailInput') as HTMLInputElement).value.trim();
       const pw1 = (container.querySelector('#passwordInput') as HTMLInputElement).value;
       const pw2 = (container.querySelector('#confirmPasswordInput') as HTMLInputElement).value;
       
@@ -391,6 +390,8 @@ async function showFriendProfile(friend: Friend) {
         }
       }
 
+      const email = (container.querySelector('#emailInput') as HTMLInputElement).value.trim();
+      
       const fd = new FormData();
       fd.append('name', name);
       fd.append('email', email);
@@ -399,7 +400,6 @@ async function showFriendProfile(friend: Friend) {
 
       console.log('Attempting to save profile with data:', { 
         name, 
-        email, 
         hasPassword: !!pw1, 
         hasAvatar: !!avatarFile,
         avatarSize: avatarFile ? avatarFile.size : 0,
