@@ -206,34 +206,53 @@ const res = await apiFetch('/api/tournament/start', {
             const result = await response.json();
             
             if (result.blockchain && result.blockchain.success) {
-              // Show blockchain success info
+              // Show blockchain success info with enhanced styling
               display.innerHTML += `
-                <div style='background: #1a4d1a; padding: 15px; border-radius: 8px; margin: 15px 0; border: 2px solid #4CAF50;'>
-                  <h3 style='color: #4CAF50; margin: 0 0 10px 0;'>🔗 Tournament Stored on Blockchain!</h3>
-                  <p style='color: white; margin: 5px 0;'><strong>Tournament ID:</strong> <code style='background: #333; padding: 2px 6px; border-radius: 3px;'>${result.tournamentId}</code></p>
-                  <p style='color: white; margin: 5px 0;'><strong>Transaction:</strong> <code style='background: #333; padding: 2px 6px; border-radius: 3px;'>${result.blockchain.transactionHash}</code></p>
-                  <p style='color: #FFD700; margin: 10px 0;'>🎯 <strong>Test the Contract Functions:</strong></p>
-                  <a href="${result.blockchain.explorerUrl}" target="_blank" style='display: inline-block; background: #4CAF50; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; margin: 5px 0;'>
-                    🔍 View on SnowTrace & Test Functions
-                  </a>
-                  <div style='background: #333; padding: 10px; border-radius: 5px; margin: 10px 0;'>
-                    <p style='color: #FFD700; margin: 0 0 5px 0; font-size: 14px;'><strong>Try these functions with Tournament ID:</strong></p>
-                    <ul style='color: #ccc; margin: 0; padding-left: 20px; font-size: 12px;'>
-                      <li>getTournamentPlayers("${result.tournamentId}")</li>
-                      <li>getTournamentWinner("${result.tournamentId}")</li>
-                      <li>getTournamentRankings("${result.tournamentId}")</li>
-                      <li>isTournament${finalRankings.length}Players("${result.tournamentId}")</li>
-                    </ul>
+                <div class="blockchain-success-container">
+                  <div class="blockchain-header">
+                    <div class="blockchain-icon">⛓️</div>
+                    <h3 class="blockchain-title">Tournament Stored on Blockchain!</h3>
+                  </div>
+                  
+                  <div class="blockchain-details">
+                    <div class="detail-item">
+                      <span class="detail-label">Tournament ID:</span>
+                      <code class="detail-code">${result.tournamentId}</code>
+                    </div>
+                    <div class="detail-item">
+                      <span class="detail-label">Transaction Hash:</span>
+                      <code class="detail-code">${result.blockchain.transactionHash}</code>
+                    </div>
+                  </div>
+
+                  <div class="blockchain-actions">
+                    <a href="${result.blockchain.explorerUrl}" target="_blank" class="explorer-button">
+                      <span class="button-icon">🔍</span>
+                      <span>View on SnowTrace & Test Functions</span>
+                    </a>
+                  </div>
+
+                  <div class="contract-functions">
+                    <div class="functions-header">
+                      <span class="functions-icon">🎯</span>
+                      <strong>Test Contract Functions:</strong>
+                    </div>
+                    <div class="functions-list">
+                      <div class="function-item">getTournamentPlayers("${result.tournamentId}")</div>
+                      <div class="function-item">getTournamentWinner("${result.tournamentId}")</div>
+                      <div class="function-item">getTournamentRankings("${result.tournamentId}")</div>
+                      <div class="function-item">isTournament${finalRankings.length}Players("${result.tournamentId}")</div>
+                    </div>
                   </div>
                 </div>
               `;
             } else {
               // Show blockchain error but don't block UI
-              display.innerHTML += `<p style='color: #ff6b6b; margin: 10px 0;'>⚠️ Blockchain storage failed, but tournament completed!</p>`;
+              display.innerHTML += `<div class="blockchain-error-container">⚠️ Blockchain storage failed, but tournament completed!</div>`;
             }
           } catch (error) {
             console.error('Blockchain storage error:', error);
-            display.innerHTML += `<p style='color: #ff6b6b; margin: 10px 0;'>⚠️ Blockchain storage failed, but tournament completed!</p>`;
+            display.innerHTML += `<div class="blockchain-error-container">⚠️ Blockchain storage failed, but tournament completed!</div>`;
           }
 
           // Clean up storage

@@ -168,18 +168,36 @@ function initGame() {
     winner: null,
     gameStarted: false
   };
+  
+  // Reset all control flags
+  spacePressed = false;
+  isCountingDown = false;
+  
   updateScoreDisplay();
 }
 
 function startHandler() {
-  if (gameState.isRunning || gameState.gameStarted) return;
+  // Check if game is paused and should resume instead
+  if (gameState.isPaused) {
+    resumeGame();
+    return;
+  }
+  
+  // Prevent starting multiple times
+  if (gameState.isRunning || gameState.gameStarted || isCountingDown) return;
+  
   (document.getElementById('start-button') as HTMLButtonElement).disabled = true;
   (document.getElementById('pause-button') as HTMLButtonElement).disabled = false;
   hideOverlay();
   countdownThenStart();
 }
 
+let isCountingDown = false; // Prevent multiple countdown starts
+
 function countdownThenStart() {
+  if (isCountingDown) return; // Prevent multiple countdowns
+  isCountingDown = true;
+  
   let count = 3;
   showOverlay(i18next.t('getReady'), `${count}`);
   const id = setInterval(() => {
@@ -187,6 +205,7 @@ function countdownThenStart() {
     if (count > 0) showOverlay(i18next.t('getReady'), `${count}`);
     else {
       clearInterval(id);
+      isCountingDown = false; // Reset countdown flag
       hideOverlay();
       beginLoop();
     }
@@ -197,6 +216,7 @@ function beginLoop() {
   gameState.isRunning = true;
   gameState.gameStarted = true;
   gameState.isPaused = false;
+  spacePressed = false; // Reset space key flag when game starts
   lastTimestamp = performance.now();
   animationFrameId = requestAnimationFrame(loop);
 }
@@ -204,10 +224,17 @@ function beginLoop() {
 function resumeGame() {
   if (!gameState.isPaused) return;
   hideOverlay();
-  (document.getElementById('start-button') as HTMLButtonElement).disabled = true;
-  (document.getElementById('pause-button') as HTMLButtonElement).disabled = false;
+  
+  // Reset button states and text
+  const startBtn = document.getElementById('start-button') as HTMLButtonElement;
+  const pauseBtn = document.getElementById('pause-button') as HTMLButtonElement;
+  startBtn.disabled = true;
+  pauseBtn.disabled = false;
+  startBtn.textContent = i18next.t('start'); // Reset button text back to "Start"
+  
   gameState.isPaused = false;
   gameState.isRunning = true;
+  spacePressed = false; // Reset space key flag when resuming
   lastTimestamp = performance.now();
   animationFrameId = requestAnimationFrame(loop);
 }
@@ -496,6 +523,8 @@ function showMessage(msg: string) {
 }
 
 // Input helpers
+let spacePressed = false; // Prevent space bar spam
+
 function keyDown(e: KeyboardEvent) {
   if (["w", "W", "s", "S", "ArrowUp", "ArrowDown"].includes(e.key)) {
     keys[e.key] = true;
@@ -503,6 +532,10 @@ function keyDown(e: KeyboardEvent) {
   }
   if (e.key === ' ') {
     e.preventDefault();
+    // Prevent multiple space presses
+    if (spacePressed) return;
+    spacePressed = true;
+    
     if (!gameState.gameStarted || gameState.isPaused) {
       if (gameState.isPaused) resumeGame();
       else startHandler();
@@ -515,6 +548,9 @@ function keyDown(e: KeyboardEvent) {
 function keyUp(e: KeyboardEvent) {
   if (["w", "W", "s", "S", "ArrowUp", "ArrowDown"].includes(e.key)) {
     keys[e.key] = false;
+  }
+  if (e.key === ' ') {
+    spacePressed = false; // Reset space bar flag
   }
 }
 

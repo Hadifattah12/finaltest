@@ -191,6 +191,190 @@
   margin: 10px auto;
 }
 
+/* ===== Blockchain Winner Display ===== */
+.blockchain-success-container {
+  background: linear-gradient(135deg, #1a4d1a 0%, #2d5016 50%, #1a4d1a 100%);
+  border: 3px solid #4CAF50;
+  border-radius: 15px;
+  margin: 20px 0;
+  padding: 25px;
+  box-shadow: 
+    0 8px 32px rgba(76, 175, 80, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.blockchain-success-container::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(76, 175, 80, 0.1), transparent);
+  animation: shimmer 3s infinite;
+  pointer-events: none;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%) translateY(-100%) rotate(45deg); }
+  100% { transform: translateX(100%) translateY(100%) rotate(45deg); }
+}
+
+.blockchain-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+  gap: 15px;
+}
+
+.blockchain-icon {
+  font-size: 2.5rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.blockchain-title {
+  color: #4CAF50;
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
+  text-align: center;
+}
+
+.blockchain-details {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid rgba(76, 175, 80, 0.3);
+}
+
+.detail-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 15px;
+  gap: 5px;
+}
+
+.detail-item:last-child {
+  margin-bottom: 0;
+}
+
+.detail-label {
+  color: #4CAF50;
+  font-weight: bold;
+  font-size: 0.9rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.detail-code {
+  background: #1a1a1a;
+  color: #00ff88;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.85rem;
+  border: 1px solid #333;
+  word-break: break-all;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.blockchain-actions {
+  text-align: center;
+  margin: 25px 0;
+}
+
+.explorer-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: linear-gradient(45deg, #4CAF50, #45a049);
+  color: white;
+  text-decoration: none;
+  padding: 15px 25px;
+  border-radius: 10px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.4);
+  border: 2px solid transparent;
+}
+
+.explorer-button:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 25px rgba(76, 175, 80, 0.6);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.button-icon {
+  font-size: 1.2rem;
+}
+
+.contract-functions {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 10px;
+  padding: 20px;
+  border: 1px solid rgba(255, 215, 0, 0.3);
+}
+
+.functions-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #FFD700;
+  font-size: 1rem;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.functions-icon {
+  font-size: 1.3rem;
+}
+
+.functions-list {
+  display: grid;
+  gap: 8px;
+}
+
+.function-item {
+  background: #2a2a2a;
+  color: #00ff88;
+  padding: 10px 15px;
+  border-radius: 6px;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  font-size: 0.8rem;
+  border-left: 3px solid #FFD700;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.function-item:hover {
+  background: #333;
+  border-left-color: #4CAF50;
+  color: #4CAF50;
+  transform: translateX(5px);
+}
+
+/* ===== Blockchain Error Display ===== */
+.blockchain-error-container {
+  background: linear-gradient(135deg, #4d1a1a 0%, #5d1616 50%, #4d1a1a 100%);
+  border: 2px solid #ff6b6b;
+  border-radius: 10px;
+  margin: 15px 0;
+  padding: 15px;
+  color: #ff6b6b;
+  text-align: center;
+  box-shadow: 0 4px 15px rgba(255, 107, 107, 0.2);
+}
+
 /* ===== Responsive ===== */
 @media (max-width: 768px) {
   .tournament-container {
@@ -250,5 +434,47 @@
 
   .tournament-container #aliasFormWrapper {
     max-height: 300px;
+  }
+
+  /* Blockchain responsive adjustments */
+  .blockchain-success-container {
+    padding: 15px;
+    margin: 15px 0;
+  }
+
+  .blockchain-title {
+    font-size: 1.2rem;
+  }
+
+  .blockchain-icon {
+    font-size: 2rem;
+  }
+
+  .blockchain-header {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .detail-item {
+    margin-bottom: 10px;
+  }
+
+  .detail-code {
+    font-size: 0.75rem;
+    padding: 6px 10px;
+  }
+
+  .explorer-button {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+  }
+
+  .contract-functions {
+    padding: 15px;
+  }
+
+  .function-item {
+    font-size: 0.75rem;
+    padding: 8px 12px;
   }
 }
