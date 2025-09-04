@@ -18,8 +18,10 @@ i18n
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
     detection: {
-      order: ['localStorage', 'navigator'],
-      caches: ['localStorage']
+      // For logged-in users, we'll manually set the language
+      // For non-logged-in users, fallback to localStorage then navigator
+      order: ['navigator'],
+      caches: [] // We'll handle caching manually per user
     }
   });
 

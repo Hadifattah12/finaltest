@@ -32,6 +32,7 @@ const db = new sqlite3.Database(DBSOURCE, (err) => {
         password TEXT NOT NULL,
         google_id TEXT UNIQUE,
         avatar TEXT DEFAULT '/uploads/default-avatar.png',
+        preferred_language TEXT DEFAULT 'en',
         is_verified BOOLEAN DEFAULT 0,
         is2FAEnabled BOOLEAN DEFAULT 0,
         verification_token TEXT,
@@ -45,6 +46,7 @@ const db = new sqlite3.Database(DBSOURCE, (err) => {
       if (err) console.error('❌ Error creating users table:', err);
       else console.log('✅ Users table ready');
     });
+
 
     // Match history table
     db.run(`

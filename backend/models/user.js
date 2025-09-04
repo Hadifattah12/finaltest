@@ -29,6 +29,7 @@ class User {
   email,
   password,
   avatar            = '/uploads/default-avatar.png',
+  preferred_language = 'en',
   is_verified       = 0,
   verification_token = null
 }) {
@@ -36,8 +37,8 @@ class User {
 
   const sql = `
     INSERT INTO users
-      (name, email, password, avatar, is_verified, verification_token)
-    VALUES (?, ?, ?, ?, ?, ?)
+      (name, email, password, avatar, preferred_language, is_verified, verification_token)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
 
   const { lastID } = await dbRunP(sql, [
@@ -45,23 +46,24 @@ class User {
     email.trim(),
     hashedPassword,
     avatar,
+    preferred_language,
     is_verified,
     verification_token
   ]);
 
-  return { id: lastID, name, email, avatar, is_verified };
+  return { id: lastID, name, email, avatar, preferred_language, is_verified };
 }
 
 
-  static async createGoogleUser({ name, email, google_id, avatar }) {
+  static async createGoogleUser({ name, email, google_id, avatar, preferred_language = 'en' }) {
     const dummyPassword = crypto.randomBytes(32).toString('hex');
     const hashedPassword = await bcrypt.hash(dummyPassword, SALT_ROUNDS);
 
     const sql = `
-      INSERT INTO users (name, email, password, google_id, avatar, is_verified)
-      VALUES (?, ?, ?, ?, ?, 1)
+      INSERT INTO users (name, email, password, google_id, avatar, preferred_language, is_verified)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
     `;
-    const { lastID } = await dbRunP(sql, [name, email, hashedPassword, google_id, avatar]);
+    const { lastID } = await dbRunP(sql, [name, email, hashedPassword, google_id, avatar, preferred_language]);
 
     return {
       id: lastID,
@@ -69,6 +71,7 @@ class User {
       email,
       google_id,
       avatar,
+      preferred_language,
       is_verified: 1,
       is2FAEnabled: 0
     };
@@ -147,6 +150,29 @@ class User {
       [row.pending_email, row.id]
     );
     return true;
+  }
+
+  /* --------------------------- language preferences --------------------------- */
+
+  static updateLanguagePreference(id, language) {
+    // Validate language is supported
+    const supportedLanguages = ['en', 'fr', 'ar'];
+    if (!supportedLanguages.includes(language)) {
+      throw new Error('Unsupported language');
+    }
+    
+    return dbRunP(
+      `UPDATE users SET preferred_language = ? WHERE id = ?`,
+      [language, id]
+    );
+  }
+
+  static async getLanguagePreference(id) {
+    const row = await dbGet(
+      `SELECT preferred_language FROM users WHERE id = ?`,
+      [id]
+    );
+    return row ? row.preferred_language : 'en';
   }
 }
 

@@ -266,6 +266,37 @@ async function routes(fastify) {
       .send({ message: 'Logged out successfully.' });
   });
 
+  /* ---------- language preference routes ---------- */
+  fastify.get('/profile/language', { preHandler: auth }, async (req, reply) => {
+    try {
+      const language = await User.getLanguagePreference(req.user.id);
+      reply.send({ language });
+    } catch (error) {
+      console.error('Error fetching language preference:', error);
+      reply.status(500).send({ error: 'Failed to fetch language preference' });
+    }
+  });
+
+  fastify.patch('/profile/language', { preHandler: auth }, async (req, reply) => {
+    try {
+      const { language } = req.body;
+      
+      if (!language) {
+        return reply.status(400).send({ error: 'Language is required' });
+      }
+
+      await User.updateLanguagePreference(req.user.id, language);
+      reply.send({ message: 'Language preference updated successfully', language });
+    } catch (error) {
+      console.error('Error updating language preference:', error);
+      if (error.message === 'Unsupported language') {
+        reply.status(400).send({ error: 'Unsupported language' });
+      } else {
+        reply.status(500).send({ error: 'Failed to update language preference' });
+      }
+    }
+  });
+
   /* ---------- misc routes ---------- */
   fastify.get('/verify-email',        verifyEmail);
   fastify.get('/confirm-new-email',   confirmEmailUpdate);

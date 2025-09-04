@@ -3,15 +3,14 @@ import '../styles/home.css';
 import i18next from 'i18next';
 import { apiFetch } from '../utils/api';
 
-export function renderHome(): HTMLElement {
-  /* ------------------ language setup ------------------ */
-  const savedLang = localStorage.getItem('lang') || 'en';
-  i18next.changeLanguage(savedLang);
-
+export async function renderHome(): Promise<HTMLElement> {
   const container = document.createElement('div');
 
   const userData = localStorage.getItem('user');
   const user     = userData ? JSON.parse(userData) : null;
+
+  /* ------------------ language setup ------------------ */
+  await initializeLanguage();
 
  container.innerHTML = `
     <div class="home-wrapper">
@@ -128,11 +127,24 @@ export function renderHome(): HTMLElement {
   const remoteBtn      = container.querySelector('#remoteBtn');
 
   /* ---------------- language selector ---------------- */
-  langSelect.value = savedLang;
-  langSelect.addEventListener('change', (e) => {
-    const newLang = (e.target as HTMLSelectElement).value;
-    localStorage.setItem('lang', newLang);
-    i18next.changeLanguage(newLang).then(() => location.reload());
+  // Set initial value after language is loaded
+  getUserLanguagePreference().then(lang => {
+    langSelect.value = lang;
+  });
+  
+  langSelect.addEventListener('change', async (e) => {
+    const newLang = (e.target as HTMLSelectElement).value as SupportedLanguage;
+    const success = await changeUserLanguage(newLang);
+    if (success) {
+      // Re-render current page with new language
+      reloadCurrentPage();
+    } else {
+      console.error('Failed to change language');
+      // Revert the selector to previous value
+      getUserLanguagePreference().then(lang => {
+        langSelect.value = lang;
+      });
+    }
   });
 
   /* ---------------- dropdown toggle ------------------ */
@@ -149,7 +161,8 @@ export function renderHome(): HTMLElement {
       } catch (err) {
         console.error('Logout API failed:', err);
       }
-      localStorage.removeItem('user');      // keep language preference
+      localStorage.removeItem('user');      // clear user data
+      clearLanguagePreferences();           // reset to browser default
       location.hash = '/login';
     });
   }
@@ -195,4 +208,147 @@ export function renderHome(): HTMLElement {
   if (remoteBtn) remoteBtn.addEventListener('click', () => (location.hash = '/remote-setup'));
 
   return container;
+}
+
+/* ==================== Language Utility Functions ==================== */
+
+const SUPPORTED_LANGUAGES = ['en', 'fr', 'ar'] as const;
+type SupportedLanguage = typeof SUPPORTED_LANGUAGES[number];
+
+/**
+ * Get user's language preference from server
+ */
+async function getUserLanguagePreference(): Promise<SupportedLanguage> {
+  try {
+    const response = await apiFetch('/api/profile/language');
+    if (response.ok) {
+      const data = await response.json();
+      return data.language || 'en';
+    }
+  } catch (error) {
+    console.error('Error fetching user language preference:', error);
+  }
+  return 'en'; // fallback to English
+}
+
+/**
+ * Update user's language preference on server
+ */
+async function updateUserLanguagePreference(language: SupportedLanguage): Promise<boolean> {
+  try {
+    const response = await apiFetch('/api/profile/language', {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ language }),
+    });
+
+    if (response.ok) {
+      return true;
+    } else {
+      const error = await response.json();
+      console.error('Error updating language preference:', error);
+      return false;
+    }
+  } catch (error) {
+    console.error('Error updating language preference:', error);
+    return false;
+  }
+}
+
+/**
+ * Initialize language based on user preference
+ */
+async function initializeLanguage(): Promise<SupportedLanguage> {
+  const userData = localStorage.getItem('user');
+  const user = userData ? JSON.parse(userData) : null;
+
+  let language: SupportedLanguage = 'en';
+
+  if (user) {
+    // User is logged in, get their preference from server
+    language = await getUserLanguagePreference();
+  } else {
+    // User is not logged in, use localStorage or browser detection
+    const savedLang = localStorage.getItem('lang') as SupportedLanguage;
+    if (savedLang && SUPPORTED_LANGUAGES.includes(savedLang)) {
+      language = savedLang;
+    } else {
+      const browserLang = navigator.language.split('-')[0] as SupportedLanguage;
+      language = SUPPORTED_LANGUAGES.includes(browserLang) ? browserLang : 'en';
+    }
+  }
+
+  // Set the language in i18next
+  await i18next.changeLanguage(language);
+  
+  // For non-logged-in users, store in localStorage as fallback
+  if (!user) {
+    localStorage.setItem('lang', language);
+  }
+
+  // Handle RTL languages
+  updateDocumentDirection(language);
+  return language;
+}
+
+/**
+ * Change language for current user
+ */
+async function changeUserLanguage(newLanguage: SupportedLanguage): Promise<boolean> {
+  const userData = localStorage.getItem('user');
+  const user = userData ? JSON.parse(userData) : null;
+
+  let success = true;
+
+  if (user) {
+    // User is logged in, update their preference on server
+    success = await updateUserLanguagePreference(newLanguage);
+  } else {
+    // User is not logged in, just update localStorage
+    localStorage.setItem('lang', newLanguage);
+  }
+
+  if (success) {
+    // Update i18next
+    await i18next.changeLanguage(newLanguage);
+    updateDocumentDirection(newLanguage);
+  }
+
+  return success;
+}
+
+/**
+ * Update document direction for RTL languages
+ */
+function updateDocumentDirection(language: SupportedLanguage): void {
+  const isRTL = language === 'ar';
+  document.documentElement.dir = isRTL ? 'rtl' : 'ltr';
+  document.documentElement.lang = language;
+}
+
+/**
+ * Clear language preferences on logout
+ */
+function clearLanguagePreferences(): void {
+  localStorage.removeItem('lang');
+  // Reset to browser default or English
+  const browserLang = navigator.language.split('-')[0] as SupportedLanguage;
+  const fallbackLang = SUPPORTED_LANGUAGES.includes(browserLang) ? browserLang : 'en';
+  
+  i18next.changeLanguage(fallbackLang);
+  updateDocumentDirection(fallbackLang);
+}
+
+/**
+ * Reload current page without full browser reload
+ */
+function reloadCurrentPage(): void {
+  // Trigger hashchange event to re-render current route
+  const currentHash = window.location.hash;
+  window.location.hash = '#/temp-reload';
+  setTimeout(() => {
+    window.location.hash = currentHash;
+  }, 1);
 }
