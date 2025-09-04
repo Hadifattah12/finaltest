@@ -1,7 +1,13 @@
-// controllers/googleAuthController.js – now issues JWT via HttpOnly cookie
+// controllers/googleAuthController.js – now issues JWT via HttpOnly cookie with refresh tokens
 require('dotenv').config();
 const { OAuth2Client } = require('google-auth-library');
-const User   = require('../models/user');
+const User = require('../models/user');
+const { 
+  createRefreshToken, 
+  getDeviceInfo, 
+  setRefreshTokenCookie, 
+  setAccessTokenCookie 
+} = require('../utils/tokenUtils');
 
 /* ─────────────────────────────── OAuth client ────────────────────────────── */
 const oauth2Client = new OAuth2Client({
@@ -83,16 +89,13 @@ const googleCallback = async (req, reply) => {
       }
     }
 
-    /* ---- issue JWT cookie (15-min access token) ---- */
-    const token = req.server.jwt.sign({ id: user.id }, { expiresIn: '15m' });
+    /* ---- issue JWT tokens (access + refresh) ---- */
+    const accessToken = req.server.jwt.sign({ id: user.id }, { expiresIn: '10m' });
+    const refreshTokenData = await createRefreshToken(user.id, getDeviceInfo(req));
 
-    reply.setCookie('access_token', token, {
-      httpOnly : true,
-      sameSite : 'strict',
-      secure   : true,
-      path     : '/',
-      maxAge   : 15 * 60
-    });
+    // Set both access and refresh token cookies
+    setAccessTokenCookie(reply, accessToken);
+    setRefreshTokenCookie(reply, refreshTokenData.tokenId, refreshTokenData.expiresAt);
 
     /* mark user online */
     req.server.onlineUsers.add(user.id);

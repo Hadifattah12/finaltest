@@ -1,8 +1,15 @@
-// authController.js  – cookie-based JWT implementation
+// authController.js  – cookie-based JWT implementation with refresh tokens
 const User        = require('../models/user');
 const bcrypt      = require('bcryptjs');
 const crypto      = require('crypto');
 const transporter = require('../services/emailService');
+const { 
+  createRefreshToken, 
+  getDeviceInfo, 
+  setRefreshTokenCookie, 
+  setAccessTokenCookie, 
+  clearAuthCookies 
+} = require('../utils/tokenUtils');
 
 /* ------------------------------------------------------------------ */
 /*  SIGN-UP                                                           */
@@ -113,22 +120,26 @@ const login = async (request, reply) => {
       });
     }
 
-    /* ---------------------- no 2FA → issue cookie ------------------ */
-    const token = request.server.jwt.sign({ id: user.id }, { expiresIn: '15m' });
+    /* ---------------------- no 2FA → issue tokens ------------------ */
+    const accessToken = request.server.jwt.sign({ id: user.id }, { expiresIn: '10m' });
+    const refreshTokenData = await createRefreshToken(user.id, getDeviceInfo(request));
+    
     request.server.onlineUsers.add(user.id);
 
-    reply
-      .setCookie('access_token', token, {
-        httpOnly: true,
-        sameSite: 'strict',
-        secure  : true,
-        path    : '/',
-        maxAge  : 15 * 60
-      })
-      .send({
-        message: 'Login successful',
-        user   : { id: user.id, name: user.name, email: user.email, avatar: user.avatar, is2FAEnabled: false }
-      });
+    // Set both access and refresh token cookies
+    setAccessTokenCookie(reply, accessToken);
+    setRefreshTokenCookie(reply, refreshTokenData.tokenId, refreshTokenData.expiresAt);
+
+    reply.send({
+      message: 'Login successful',
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        avatar: user.avatar, 
+        is2FAEnabled: false 
+      }
+    });
   } catch (err) {
     request.log.error(err);
     return reply.status(500).send({ error: 'Internal Server Error' });
@@ -150,21 +161,25 @@ const verify2FA = async (request, reply) => {
 
     await User.clear2FACode(user.id);
 
-    const token = request.server.jwt.sign({ id: user.id }, { expiresIn: '15m' });
+    const accessToken = request.server.jwt.sign({ id: user.id }, { expiresIn: '10m' });
+    const refreshTokenData = await createRefreshToken(user.id, getDeviceInfo(request));
+    
     request.server.onlineUsers.add(user.id);
 
-    reply
-      .setCookie('access_token', token, {
-        httpOnly: true,
-        sameSite: 'strict',
-        secure  : true,
-        path    : '/',
-        maxAge  : 15 * 60
-      })
-      .send({
-        message: '2FA verification successful',
-        user   : { id: user.id, name: user.name, email: user.email, avatar: user.avatar, is2FAEnabled: true }
-      });
+    // Set both access and refresh token cookies
+    setAccessTokenCookie(reply, accessToken);
+    setRefreshTokenCookie(reply, refreshTokenData.tokenId, refreshTokenData.expiresAt);
+
+    reply.send({
+      message: '2FA verification successful',
+      user: { 
+        id: user.id, 
+        name: user.name, 
+        email: user.email, 
+        avatar: user.avatar, 
+        is2FAEnabled: true 
+      }
+    });
   } catch (err) {
     request.log.error(err);
     return reply.status(500).send({ error: 'Internal Server Error' });
@@ -207,4 +222,81 @@ const toggle2FA = async (request, reply) => {
   }
 };
 
-module.exports = { signUp, login, verify2FA, getProfile, toggle2FA };
+/* ------------------------------------------------------------------ */
+/*  REFRESH TOKEN                                                     */
+/* ------------------------------------------------------------------ */
+const refreshToken = async (request, reply) => {
+  try {
+    const refreshTokenId = request.cookies.refresh_token;
+    
+    if (!refreshTokenId) {
+      return reply.status(401).send({ error: 'No refresh token provided' });
+    }
+
+    // Find and validate refresh token
+    const tokenData = await User.findRefreshToken(refreshTokenId);
+    
+    if (!tokenData) {
+      clearAuthCookies(reply);
+      return reply.status(401).send({ error: 'Invalid or expired refresh token' });
+    }
+
+    // Update last used timestamp
+    await User.updateRefreshTokenUsage(refreshTokenId);
+
+    // Generate new access token
+    const accessToken = request.server.jwt.sign(
+      { id: tokenData.user_id }, 
+      { expiresIn: '15m' }
+    );
+
+    // Set new access token cookie
+    setAccessTokenCookie(reply, accessToken);
+
+    return reply.send({
+      message: 'Token refreshed successfully',
+      user: {
+        id: tokenData.user_id,
+        name: tokenData.name,
+        email: tokenData.email,
+        avatar: tokenData.avatar,
+        is2FAEnabled: !!tokenData.is2FAEnabled
+      }
+    });
+
+  } catch (err) {
+    request.log.error('Refresh token error:', err);
+    clearAuthCookies(reply);
+    return reply.status(401).send({ error: 'Token refresh failed' });
+  }
+};
+
+/* ------------------------------------------------------------------ */
+/*  LOGOUT WITH TOKEN REVOCATION                                      */
+/* ------------------------------------------------------------------ */
+const logout = async (request, reply) => {
+  try {
+    const refreshTokenId = request.cookies.refresh_token;
+    
+    // Revoke refresh token if present
+    if (refreshTokenId) {
+      await User.revokeRefreshToken(refreshTokenId);
+    }
+
+    // Remove user from online users
+    if (request.user && request.user.id) {
+      request.server.onlineUsers.delete(request.user.id);
+    }
+
+    // Clear all auth cookies
+    clearAuthCookies(reply);
+    
+    return reply.send({ message: 'Logged out successfully' });
+  } catch (err) {
+    request.log.error('Logout error:', err);
+    clearAuthCookies(reply);
+    return reply.send({ message: 'Logged out successfully' });
+  }
+};
+
+module.exports = { signUp, login, verify2FA, getProfile, toggle2FA, refreshToken, logout };

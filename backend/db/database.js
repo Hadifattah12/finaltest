@@ -48,6 +48,24 @@ const db = new sqlite3.Database(DBSOURCE, (err) => {
     });
 
 
+    // Refresh tokens table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS refresh_tokens (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        token_id TEXT UNIQUE NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        device_info TEXT,
+        is_revoked BOOLEAN DEFAULT 0,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      )
+    `, (err) => {
+      if (err) console.error('❌ Error creating refresh_tokens table:', err);
+      else console.log('✅ Refresh tokens table ready');
+    });
+
     // Match history table
     db.run(`
       CREATE TABLE IF NOT EXISTS match_history (

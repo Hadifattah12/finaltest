@@ -174,6 +174,64 @@ class User {
     );
     return row ? row.preferred_language : 'en';
   }
+
+  /* --------------------------- refresh token management --------------------------- */
+
+  static async createRefreshToken(userId, tokenId, expiresAt, deviceInfo = null) {
+    return dbRunP(
+      `INSERT INTO refresh_tokens (user_id, token_id, expires_at, device_info)
+       VALUES (?, ?, ?, ?)`,
+      [userId, tokenId, expiresAt.toISOString(), deviceInfo]
+    );
+  }
+
+  static async findRefreshToken(tokenId) {
+    return dbGet(
+      `SELECT rt.*, u.id as user_id, u.name, u.email, u.avatar, u.is2FAEnabled 
+       FROM refresh_tokens rt
+       JOIN users u ON rt.user_id = u.id
+       WHERE rt.token_id = ? AND rt.is_revoked = 0 AND rt.expires_at > datetime('now')`,
+      [tokenId]
+    );
+  }
+
+  static async updateRefreshTokenUsage(tokenId) {
+    return dbRunP(
+      `UPDATE refresh_tokens SET last_used_at = datetime('now') WHERE token_id = ?`,
+      [tokenId]
+    );
+  }
+
+  static async revokeRefreshToken(tokenId) {
+    return dbRunP(
+      `UPDATE refresh_tokens SET is_revoked = 1 WHERE token_id = ?`,
+      [tokenId]
+    );
+  }
+
+  static async revokeAllUserRefreshTokens(userId) {
+    return dbRunP(
+      `UPDATE refresh_tokens SET is_revoked = 1 WHERE user_id = ?`,
+      [userId]
+    );
+  }
+
+  static async cleanupExpiredRefreshTokens() {
+    return dbRunP(
+      `DELETE FROM refresh_tokens WHERE expires_at < datetime('now') OR is_revoked = 1`
+    );
+  }
+
+  static async getUserRefreshTokens(userId, limit = 10) {
+    return dbAll(
+      `SELECT token_id, created_at, last_used_at, device_info, expires_at 
+       FROM refresh_tokens 
+       WHERE user_id = ? AND is_revoked = 0 
+       ORDER BY last_used_at DESC 
+       LIMIT ?`,
+      [userId, limit]
+    );
+  }
 }
 
 module.exports = User;

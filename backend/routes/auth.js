@@ -11,15 +11,17 @@ const User = require('../models/user');
 const db   = require('../db/database');        // ← single DB handle here
 
 async function routes(fastify) {
-  const { signUp, login, getProfile, verify2FA } =
+  const { signUp, login, getProfile, verify2FA, refreshToken, logout } =
     require('../controllers/authController');
   const verifyEmail  = require('../controllers/verifyEmail');
   const tournament   = require('../controllers/tournamentController');
 
   /* ---------- Public auth ---------- */
-  fastify.post('/signup',     signUp);
-  fastify.post('/login',      login);
-  fastify.post('/verify-2fa', verify2FA);
+  fastify.post('/signup',       signUp);
+  fastify.post('/login',        login);
+  fastify.post('/verify-2fa',   verify2FA);
+  fastify.post('/refresh',      refreshToken);
+  fastify.post('/logout',       { preHandler: auth }, logout);
 
   /* ---------- Google OAuth ---------- */
   fastify.get('/auth/google',          googleAuth);
@@ -256,15 +258,7 @@ async function routes(fastify) {
     }
   });
 
-  /* ---------- logout ---------- */
-  fastify.post('/logout', { preHandler: auth }, (req, reply) => {
-    req.server.onlineUsers.delete(req.user.id);
-
-    /* Clear the JWT cookie */
-    reply
-      .clearCookie('access_token', { path: '/' })   // <-- added
-      .send({ message: 'Logged out successfully.' });
-  });
+  /* ---------- logout handled in auth controller now ---------- */
 
   /* ---------- language preference routes ---------- */
   fastify.get('/profile/language', { preHandler: auth }, async (req, reply) => {

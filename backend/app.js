@@ -167,6 +167,18 @@ fastify.decorate('onlineUsers', new Set());
 /* -------------------------- WebSockets ----------------------------- */
 const { createWebSocketServer } = require('./ws');
 
+/* ----------------------- Cleanup job ----------------------- */
+const User = require('./models/user');
+// Clean expired refresh tokens every hour
+setInterval(async () => {
+  try {
+    await User.cleanupExpiredRefreshTokens();
+    console.log('🧹 Cleaned up expired refresh tokens');
+  } catch (err) {
+    console.error('❌ Cleanup error:', err);
+  }
+}, 60 * 60 * 1000); // 1 hour
+
 /* --------------------------- start-up ------------------------------ */
 (async () => {
   try {
