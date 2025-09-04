@@ -1,0 +1,12 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+      - "5173:5173"
+    environment:
+      - NGROK_AUTHTOKEN=${NGROK_AUTHTOKEN}
+      - PUBLIC_URL=${PUBLIC_URL}
+    volumes:
+      - ./backend/db:/app/backend/db
+    restart: unless-stopped
